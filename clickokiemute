@@ -1,0 +1,61 @@
+# Clear all graphs
+try(dev.off(),silent = TRUE)
+
+# Delete R objects created during the session
+rm(list=ls())
+
+# Or Ctrl+L - Clear the Console window
+cat("\014")
+
+# Delete Graphic window in Rstudio
+try(dev.off(dev.list()["Rstudio"]),silent = TRUE)
+
+# Set working directory
+setwd("C:/Users/User/Desktop/Thesis Materials/Data")
+
+# View all files in directory
+dir()
+
+# Read in Puud99 data (forestry data)
+Puud99<-foreign::read.dbf("puud99.dbf",as.is = TRUE)[1:12]
+
+# Change all column heads in Puud99 to lower cases
+names(Puud99)<-tolower(names(Puud99))
+
+# Calculate and input values for diameter at breast height (dbh) into Puud99, using d1 and d2
+Puud99$dbh<-with(Puud99,ifelse(d2>0,(d1+d2)/2,d1))
+
+# Let us estimate missing height (h) values, using linear regression model
+
+# First, let us create a function that returns 0 for missing h values and 1, otherwise
+MissDummy<-function(t)
+{
+  x<-dim(length(t))
+  x[which(!is.na(t))]=1
+  x[which(is.na(t))]=0
+  return(x)
+}
+
+# Input values from above function to Puud99 in column called "dummy"
+Puud99$dummy<-MissDummy(Puud99$h)
+
+# View Puud99
+Puud99
+
+# Implement linear model to find missing values
+lm(h~dbh,Puud99)
+
+#Input missing values, using result (integer and slope) from model above
+for(i in 1:nrow(Puud99))
+  {
+    if(Puud99$dummy[i]==0)
+      {
+      Puud99$h[i] = 5.8604+0.6574*Puud99$dbh[i]
+    }
+}
+
+# View table
+Puud99
+
+# Round off values of h to 1 decimal place
+Puud99$h<-round(Puud99$h, digits = 1)
